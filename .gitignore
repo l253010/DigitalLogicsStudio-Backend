@@ -1,8 +1,26 @@
 node_modules/
-.env
-.env.*
-npm-debug.log*
-dist/
 build/
+dist/
 coverage/
+
+# environment
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# logs
+npm-debug.log*
+*.log
+
+# local Python env if kept temporarily
 venv/
+
+# editor and OS files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

@@ -5,8 +5,22 @@ const connectDB = require("./src/config/db");
 
 const PORT = process.env.PORT || 5000;
 
+const validateEnvironment = () => {
+  const requiredVariables = ["MONGO_URI", "JWT_SECRET"];
+  const missingVariables = requiredVariables.filter(
+    (variableName) => !process.env[variableName],
+  );
+
+  if (missingVariables.length > 0) {
+    throw new Error(
+      `Missing required environment variables: ${missingVariables.join(", ")}`,
+    );
+  }
+};
+
 const startServer = async () => {
   try {
+    validateEnvironment();
     await connectDB();
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
