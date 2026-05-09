@@ -18,7 +18,10 @@ app.set("trust proxy", 1);
 
 app.use(
   cors({
-    origin: normalizedClientUrl,
+    origin: [
+      "http://localhost:3000",
+      "https://circuits.quantumlogicslimited.com",
+    ],
     credentials: true,
   }),
 );
