@@ -24,3 +24,8 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# make-folder-txt
+.txtconfig
+.txtignore
+backend.txt
