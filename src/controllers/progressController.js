@@ -1,8 +1,7 @@
-const User = require("../models/User");
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const toDateKey = (date = new Date()) => new Date(date).toISOString().slice(0, 10);
+const toDateKey = (date = new Date()) =>
+  new Date(date).toISOString().slice(0, 10);
 
 const makeEventId = (type) =>
   `${type}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
@@ -57,7 +56,6 @@ async function completeProblem(req, res, next) {
     entry.solvedAt = entry.solvedAt || new Date();
     entry.lastAttemptAt = new Date();
 
-    // Keep legacy flat array in sync
     if (!req.user.solvedProblems.includes(problemId)) {
       req.user.solvedProblems.push(problemId);
     }
@@ -107,11 +105,17 @@ async function uncompleteProblem(req, res, next) {
       entry.solvedAt = null;
     }
 
-    req.user.solvedProblems = req.user.solvedProblems.filter((id) => id !== problemId);
+    req.user.solvedProblems = req.user.solvedProblems.filter(
+      (id) => id !== problemId,
+    );
     req.user.markModified("problemProgress");
     await req.user.save();
 
-    res.status(200).json({ success: true, message: "Problem un-marked.", user: sanitizeUser(req.user) });
+    res.status(200).json({
+      success: true,
+      message: "Problem un-marked.",
+      user: sanitizeUser(req.user),
+    });
   } catch (error) {
     next(error);
   }
@@ -198,7 +202,11 @@ async function openTopic(req, res, next) {
     req.user.markModified("recentEvents");
     await req.user.save();
 
-    res.status(200).json({ success: true, message: "Topic opened.", topicProgress: entry });
+    res.status(200).json({
+      success: true,
+      message: "Topic opened.",
+      topicProgress: entry,
+    });
   } catch (error) {
     next(error);
   }
@@ -211,7 +219,11 @@ async function openTopic(req, res, next) {
 async function toggleSubtopic(req, res, next) {
   try {
     const { topicId, subtopicId } = req.params;
-    const { title = "", totalSubtopics, equivalentSubtopicIds = [] } = req.body || {};
+    const {
+      title = "",
+      totalSubtopics,
+      equivalentSubtopicIds = [],
+    } = req.body || {};
     const dateKey = toDateKey();
     const entry = req.user.getTopicProgress(topicId);
 
@@ -254,7 +266,11 @@ async function toggleSubtopic(req, res, next) {
     req.user.markModified("recentEvents");
     await req.user.save();
 
-    res.status(200).json({ success: true, message: "Subtopic toggled.", topicProgress: entry });
+    res.status(200).json({
+      success: true,
+      message: "Subtopic toggled.",
+      topicProgress: entry,
+    });
   } catch (error) {
     next(error);
   }
@@ -270,7 +286,6 @@ async function getSnapshot(req, res, next) {
   try {
     const user = req.user;
 
-    // Build problems map keyed by problemId
     const problems = {};
     (user.problemProgress || []).forEach((p) => {
       problems[p.problemId] = {
@@ -285,7 +300,6 @@ async function getSnapshot(req, res, next) {
       };
     });
 
-    // Build topics map keyed by topicId
     const topics = {};
     (user.topicProgress || []).forEach((t) => {
       topics[t.topicId] = {
@@ -299,7 +313,6 @@ async function getSnapshot(req, res, next) {
       };
     });
 
-    // Build activity map keyed by dateKey
     const activity = {};
     (user.activityLog || []).forEach((d) => {
       activity[d.dateKey] = {
@@ -324,6 +337,8 @@ async function getSnapshot(req, res, next) {
   }
 }
 
+const getProgress = getSnapshot;
+
 module.exports = {
   completeProblem,
   uncompleteProblem,
@@ -331,4 +346,5 @@ module.exports = {
   openTopic,
   toggleSubtopic,
   getSnapshot,
+  getProgress,
 };
