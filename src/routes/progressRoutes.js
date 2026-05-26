@@ -11,6 +11,13 @@ const {
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Progress
+ *   description: User progress tracking endpoints
+ */
+
 // All progress routes require authentication
 router.use(protect);
 
