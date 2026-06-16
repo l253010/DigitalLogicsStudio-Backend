@@ -5,6 +5,7 @@ const {
   generateToken,
   setAuthCookie,
 } = require("../utils/token");
+const { createHttpError } = require("../utils/httpError");
 
 function sanitizeUser(user) {
   return {
@@ -20,6 +21,10 @@ function validateEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function normalizeEmail(email) {
+  return email.trim().toLowerCase();
+}
+
 async function registerUser(req, res, next) {
   try {
     assertAuthConfig();
@@ -27,31 +32,26 @@ async function registerUser(req, res, next) {
     const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
-      res.status(400);
-      throw new Error("Name, email, and password are required.");
+      throw createHttpError(400, "Name, email, and password are required.");
     }
 
     if (name.trim().length < 2) {
-      res.status(400);
-      throw new Error("Name must be at least 2 characters long.");
+      throw createHttpError(400, "Name must be at least 2 characters long.");
     }
 
     if (!validateEmail(email)) {
-      res.status(400);
-      throw new Error("Please provide a valid email address.");
+      throw createHttpError(400, "Please provide a valid email address.");
     }
 
     if (password.length < 8) {
-      res.status(400);
-      throw new Error("Password must be at least 8 characters long.");
+      throw createHttpError(400, "Password must be at least 8 characters long.");
     }
 
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedEmail = normalizeEmail(email);
     const existingUser = await User.findOne({ email: normalizedEmail });
 
     if (existingUser) {
-      res.status(409);
-      throw new Error("An account with this email already exists.");
+      throw createHttpError(409, "An account with this email already exists.");
     }
 
     const user = await User.create({
@@ -80,16 +80,14 @@ async function loginUser(req, res, next) {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      res.status(400);
-      throw new Error("Email and password are required.");
+      throw createHttpError(400, "Email and password are required.");
     }
 
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedEmail = normalizeEmail(email);
     const user = await User.findOne({ email: normalizedEmail }).select("+password");
 
     if (!user || !(await user.matchPassword(password))) {
-      res.status(401);
-      throw new Error("Invalid email or password.");
+      throw createHttpError(401, "Invalid email or password.");
     }
 
     const token = generateToken(user._id.toString());
