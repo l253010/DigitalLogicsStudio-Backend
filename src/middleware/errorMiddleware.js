@@ -10,9 +10,14 @@ function errorHandler(error, req, res, next) {
     error.status ||
     (res.statusCode && res.statusCode !== 200 ? res.statusCode : 500);
 
+  let message = error.message || "Internal server error";
+  if (process.env.NODE_ENV === "production" && error.code === 11000) {
+    message = "An account with these details already exists.";
+  }
+
   res.status(statusCode).json({
     success: false,
-    message: error.message || "Internal server error",
+    message,
     ...(process.env.NODE_ENV !== "production" && { stack: error.stack }),
   });
 }

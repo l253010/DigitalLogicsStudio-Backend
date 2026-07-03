@@ -7,10 +7,27 @@ const CURRICULUM = [
 ];
 
 const COAL_CURRICULUM = [
-  { slug: "coal-syntax", title: "COAL Syntax", summary: "instructions, labels, comments, basic program structure" },
-  { slug: "registers-memory", title: "Registers and Memory", summary: "register files, addressing, load/store, data movement" },
-  { slug: "control-flow", title: "Control Flow", summary: "branching, jumps, loops, decision-making instructions" },
-  { slug: "computer-organization", title: "Computer Organization", summary: "fetch-decode-execute, ARM64, CPU architecture, assembly logic" },
+  { slug: "intro-computer-organization", title: "Intro to Computer Organization", summary: "organization vs architecture, Von Neumann model, CPU and buses" },
+  { slug: "number-systems-representation", title: "Number Systems & Representation", summary: "binary/hex conversion, complements, BCD, ASCII, floating-point basics" },
+  { slug: "digital-logic-bridge", title: "Digital Logic Bridge", summary: "gates, adders, flip-flops, and registers in CPU context" },
+  { slug: "cpu-components", title: "CPU Components", summary: "ALU, control unit, PC, IR, and general-purpose registers" },
+  { slug: "instruction-cycle", title: "Instruction Cycle", summary: "fetch, decode, execute, writeback, and program tracing" },
+  { slug: "memory-hierarchy", title: "Memory Hierarchy", summary: "registers, cache, RAM, addressing, stack preview" },
+  { slug: "instruction-set-architecture", title: "Instruction Set Architecture", summary: "instruction categories, formats, assembly vs machine code" },
+  { slug: "addressing-modes", title: "Addressing Modes", summary: "immediate, register, direct, indirect, indexed addressing" },
+  { slug: "flags-and-status", title: "Flags & Comparisons", summary: "ZF, CF, OF, SF, CMP, and conditional branches" },
+  { slug: "coal-syntax", title: "Data Movement & Instructions", summary: "MOV, arithmetic, logic, shift, and COAL syntax" },
+  { slug: "control-flow", title: "Control Flow", summary: "jumps, loops, if-else, and branch patterns" },
+  { slug: "registers-memory", title: "Registers & Memory Operands", summary: "x86 register sets, operand sizes, memory access rules" },
+  { slug: "procedures-stack", title: "Procedures & Stack", summary: "PUSH, POP, CALL, RET, parameters, and recursion" },
+  { slug: "arrays-strings", title: "Arrays & Strings", summary: "indexed access, string instructions, sort and search routines" },
+  { slug: "ia32-architecture", title: "Intel IA-32 Architecture", summary: "modes, segmentation, paging, instruction encoding" },
+  { slug: "directives-macros", title: "Directives & Macros", summary: ".DATA, .CODE, PROC, macros, assemble-link pipeline" },
+  { slug: "hw-sw-interface", title: "Hardware–Software Interface", summary: "compiler chain, stack frames, calling conventions" },
+  { slug: "io-interrupts", title: "I/O & Interrupts", summary: "programmed I/O, interrupts, DMA, and ISRs" },
+  { slug: "processor-families", title: "Processor Families", summary: "CISC vs RISC, x86, ARM, MIPS, RISC-V comparison" },
+  { slug: "pipelining", title: "Pipelining & Hazards", summary: "5-stage pipeline, hazards, forwarding, performance metrics" },
+  { slug: "computer-organization", title: "COAL Capstone", summary: "end-to-end integration, exams, and project prep" },
 ];
 
 const VALID_DIFFICULTIES = ["beginner", "intermediate", "advanced"];

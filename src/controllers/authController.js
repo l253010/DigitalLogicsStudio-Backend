@@ -25,6 +25,20 @@ function normalizeEmail(email) {
   return email.trim().toLowerCase();
 }
 
+function mapDuplicateKeyError(error) {
+  if (error?.code !== 11000) return null;
+
+  const field = Object.keys(error.keyPattern || {})[0];
+  if (field === "email") {
+    return createHttpError(409, "An account with this email already exists.");
+  }
+
+  return createHttpError(
+    409,
+    "An account with these details already exists. Try logging in instead.",
+  );
+}
+
 async function registerUser(req, res, next) {
   try {
     assertAuthConfig();
@@ -69,7 +83,8 @@ async function registerUser(req, res, next) {
       user: sanitizeUser(user),
     });
   } catch (error) {
-    next(error);
+    const duplicateError = mapDuplicateKeyError(error);
+    next(duplicateError || error);
   }
 }
 
