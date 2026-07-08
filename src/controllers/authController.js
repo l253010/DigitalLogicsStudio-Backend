@@ -6,6 +6,15 @@ const {
   setAuthCookie,
 } = require("../utils/token");
 const { createHttpError } = require("../utils/httpError");
+const { sendPasswordResetOTP } = require("../utils/email");
+const {
+  OTP_TTL_MS,
+  RESET_TOKEN_TTL_MS,
+  MAX_OTP_ATTEMPTS,
+  generateOTP,
+  hashValue,
+  generateResetToken,
+} = require("../utils/otp");
 
 function sanitizeUser(user) {
   return {
@@ -119,9 +128,163 @@ function getCurrentUser(req, res) {
   });
 }
 
+const GENERIC_OTP_MESSAGE =
+  "If an account exists for that email, a verification code has been sent.";
+
+async function forgotPassword(req, res, next) {
+  try {
+    const { email } = req.body;
+
+    if (!email || !validateEmail(email)) {
+      throw createHttpError(400, "Please provide a valid email address.");
+    }
+
+    const normalizedEmail = normalizeEmail(email);
+    const user = await User.findOne({ email: normalizedEmail });
+
+    // Respond identically whether or not the account exists, to avoid
+    // leaking which emails are registered.
+    if (!user) {
+      return res.status(200).json({ success: true, message: GENERIC_OTP_MESSAGE });
+    }
+
+    const otp = generateOTP();
+
+    user.resetPassword = {
+      otpHash: hashValue(otp),
+      otpExpires: new Date(Date.now() + OTP_TTL_MS),
+      otpAttempts: 0,
+      tokenHash: null,
+      tokenExpires: null,
+    };
+    await user.save({ validateBeforeSave: false });
+
+    try {
+      await sendPasswordResetOTP(user.email, user.name, otp);
+    } catch (emailError) {
+      user.resetPassword = { otpHash: null, otpExpires: null, otpAttempts: 0 };
+      await user.save({ validateBeforeSave: false });
+      throw createHttpError(502, "Failed to send verification email. Please try again.");
+    }
+
+    res.status(200).json({ success: true, message: GENERIC_OTP_MESSAGE });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function verifyResetOtp(req, res, next) {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      throw createHttpError(400, "Email and verification code are required.");
+    }
+
+    const normalizedEmail = normalizeEmail(email);
+    const user = await User.findOne({ email: normalizedEmail }).select(
+      "+resetPassword.otpHash +resetPassword.otpExpires +resetPassword.otpAttempts",
+    );
+
+    if (!user || !user.resetPassword?.otpHash || !user.resetPassword?.otpExpires) {
+      throw createHttpError(400, "Invalid or expired verification code.");
+    }
+
+    if (user.resetPassword.otpExpires.getTime() < Date.now()) {
+      user.resetPassword = { otpHash: null, otpExpires: null, otpAttempts: 0 };
+      await user.save({ validateBeforeSave: false });
+      throw createHttpError(400, "Invalid or expired verification code.");
+    }
+
+    if (user.resetPassword.otpAttempts >= MAX_OTP_ATTEMPTS) {
+      user.resetPassword = { otpHash: null, otpExpires: null, otpAttempts: 0 };
+      await user.save({ validateBeforeSave: false });
+      throw createHttpError(
+        429,
+        "Too many incorrect attempts. Please request a new verification code.",
+      );
+    }
+
+    if (hashValue(otp) !== user.resetPassword.otpHash) {
+      user.resetPassword.otpAttempts += 1;
+      await user.save({ validateBeforeSave: false });
+      throw createHttpError(400, "Invalid or expired verification code.");
+    }
+
+    const resetToken = generateResetToken();
+    user.resetPassword = {
+      otpHash: null,
+      otpExpires: null,
+      otpAttempts: 0,
+      tokenHash: hashValue(resetToken),
+      tokenExpires: new Date(Date.now() + RESET_TOKEN_TTL_MS),
+    };
+    await user.save({ validateBeforeSave: false });
+
+    res.status(200).json({
+      success: true,
+      message: "Code verified. You can now set a new password.",
+      resetToken,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function resetPassword(req, res, next) {
+  try {
+    const { email, resetToken, password } = req.body;
+
+    if (!email || !resetToken || !password) {
+      throw createHttpError(400, "Email, reset token, and new password are required.");
+    }
+
+    if (password.length < 8) {
+      throw createHttpError(400, "Password must be at least 8 characters long.");
+    }
+
+    const normalizedEmail = normalizeEmail(email);
+    const user = await User.findOne({ email: normalizedEmail }).select(
+      "+resetPassword.tokenHash +resetPassword.tokenExpires",
+    );
+
+    if (
+      !user ||
+      !user.resetPassword?.tokenHash ||
+      !user.resetPassword?.tokenExpires ||
+      user.resetPassword.tokenExpires.getTime() < Date.now() ||
+      hashValue(resetToken) !== user.resetPassword.tokenHash
+    ) {
+      throw createHttpError(400, "Invalid or expired reset session. Please start again.");
+    }
+
+    user.password = password;
+    user.resetPassword = {
+      otpHash: null,
+      otpExpires: null,
+      otpAttempts: 0,
+      tokenHash: null,
+      tokenExpires: null,
+    };
+    await user.save();
+
+    clearAuthCookie(res);
+
+    res.status(200).json({
+      success: true,
+      message: "Password reset successfully. Please log in with your new password.",
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   registerUser,
   loginUser,
   logoutUser,
   getCurrentUser,
+  forgotPassword,
+  verifyResetOtp,
+  resetPassword,
 };

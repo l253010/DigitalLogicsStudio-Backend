@@ -1,13 +1,39 @@
 const express = require("express");
+const rateLimit = require("express-rate-limit");
 const {
   registerUser,
   loginUser,
   logoutUser,
   getCurrentUser,
+  forgotPassword,
+  verifyResetOtp,
+  resetPassword,
 } = require("../controllers/authController");
 const { protect } = require("../middleware/authMiddleware");
 
 const router = express.Router();
+
+const otpRequestLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many requests. Please try again later.",
+  },
+});
+
+const otpVerifyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many attempts. Please try again later.",
+  },
+});
 
 /**
  * @swagger
@@ -163,5 +189,97 @@ router.post("/logout", logoutUser);
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.get("/me", protect, getCurrentUser);
+
+/**
+ * @swagger
+ * /api/auth/forgot-password:
+ *   post:
+ *     summary: Request a password reset code via email
+ *     tags: [Auth]
+ *     description: >
+ *       Sends a 6-digit OTP to the user's email if an account exists. Always
+ *       returns 200 with a generic message to avoid revealing whether the
+ *       email is registered.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: OTP sent (or email not found — response is identical either way)
+ *       400:
+ *         description: Invalid email
+ */
+router.post("/forgot-password", otpRequestLimiter, forgotPassword);
+
+/**
+ * @swagger
+ * /api/auth/verify-reset-otp:
+ *   post:
+ *     summary: Verify the password reset OTP
+ *     tags: [Auth]
+ *     description: >
+ *       Verifies the 6-digit code sent to the user's email. On success,
+ *       returns a short-lived resetToken required to call /reset-password.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, otp]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               otp:
+ *                 type: string
+ *                 example: "123456"
+ *     responses:
+ *       200:
+ *         description: OTP verified, resetToken issued
+ *       400:
+ *         description: Invalid or expired code
+ *       429:
+ *         description: Too many incorrect attempts
+ */
+router.post("/verify-reset-otp", otpVerifyLimiter, verifyResetOtp);
+
+/**
+ * @swagger
+ * /api/auth/reset-password:
+ *   post:
+ *     summary: Set a new password using a verified reset token
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, resetToken, password]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               resetToken:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *                 minLength: 8
+ *     responses:
+ *       200:
+ *         description: Password reset successfully
+ *       400:
+ *         description: Invalid/expired reset session or weak password
+ */
+router.post("/reset-password", otpVerifyLimiter, resetPassword);
 
 module.exports = router;

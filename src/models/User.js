@@ -112,6 +112,15 @@ const userSchema = new mongoose.Schema(
       type: [recentEventSchema],
       default: [],
     },
+
+    // ── Password reset (forgot password via OTP) ──
+    resetPassword: {
+      otpHash: { type: String, select: false, default: null },
+      otpExpires: { type: Date, select: false, default: null },
+      otpAttempts: { type: Number, select: false, default: 0 },
+      tokenHash: { type: String, select: false, default: null },
+      tokenExpires: { type: Date, select: false, default: null },
+    },
   },
   {
     timestamps: true,
