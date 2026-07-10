@@ -43,6 +43,7 @@ const allowedOrigins = [
   "http://127.0.0.1:3000",
   "http://127.0.0.1:3001",
   "https://circuits.quantumlogicslimited.com",
+  "https://www.circuits.quantumlogicslimited.com",
   "https://digital-logics-studio.vercel.app",
   "https://digital-logics-studio-seven.vercel.app",
   "https://circuit.quantumlogicslimited.com",
